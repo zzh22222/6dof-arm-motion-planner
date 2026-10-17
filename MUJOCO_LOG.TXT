@@ -1,0 +1,4 @@
+WARNING Fri Oct 16 14:42:47 2026: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 0.0500.
+
+ERROR mj_copyDataVisual (engine_io.c:1176) Sat Oct 17 15:57:34 2026: attempting to copy mjData while stack is in use
+

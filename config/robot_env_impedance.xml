@@ -1,0 +1,162 @@
+<mujoco model="industrial_6dof_impedance_assembly">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast">
+    <flag contact="enable"/>
+  </option>
+
+  <default>
+    <joint damping="0.05" armature="0.01"/>
+    <!-- Contact properties for realistic compliant sliding & assembly contacts -->
+    <geom friction="0.25 0.005 0.0002" solref="0.005 1" solimp="0.95 0.99 0.001"/>
+    
+    <!-- Arm links: visual only, no internal self-lock collisions -->
+    <default class="arm">
+      <geom contype="0" conaffinity="0"/>
+    </default>
+    
+    <!-- Contact geoms: peg, table, fixture socket -->
+    <default class="contact_geom">
+      <geom contype="1" conaffinity="1"/>
+    </default>
+  </default>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.85 0.9 1.0" rgb2="0.6 0.7 0.85" width="512" height="512"/>
+    <texture name="plane_tex" type="2d" builtin="checker" rgb1="0.92 0.92 0.92" rgb2="0.82 0.82 0.82" width="512" height="512"/>
+    <material name="plane_mat" texture="plane_tex" texrepeat="5 5" reflectance="0.1"/>
+    
+    <!-- Robot materials -->
+    <material name="arm_base_mat" rgba="0.2 0.25 0.3 1"/>
+    <material name="arm_joint_mat" rgba="0.9 0.45 0.1 1"/>
+    <material name="arm_link_mat" rgba="0.85 0.88 0.92 1"/>
+    
+    <!-- Peg & Assembly materials -->
+    <material name="peg_mat" rgba="0.95 0.75 0.15 1" specular="0.9" shininess="0.9"/> <!-- Bright Polished Gold Peg -->
+    <material name="fixture_mat" rgba="0.15 0.5 0.85 0.38" specular="0.9" shininess="0.9"/> <!-- Translucent Acrylic Glass Fixture -->
+    <material name="chamfer_mat" rgba="0.9 0.25 0.25 0.85"/> <!-- Red chamfer funnel rim for clear visual guide -->
+    <material name="table_mat" rgba="0.35 0.38 0.42 1"/>
+    <material name="hole_floor_mat" rgba="0.2 0.8 0.3 1"/> <!-- Green target landing floor -->
+  </asset>
+
+  <worldbody>
+    <!-- Lighting -->
+    <light directional="true" pos="0 1 3" dir="0 -0.3 -1" diffuse="0.8 0.8 0.8" specular="0.4 0.4 0.4"/>
+    <light directional="true" pos="-1 -1 2" dir="0.5 0.5 -1" diffuse="0.5 0.5 0.5"/>
+
+    <!-- Floor -->
+    <geom name="floor" type="plane" size="3 3 0.1" material="plane_mat" class="contact_geom"/>
+
+    <!-- Workbench Table -->
+    <body name="table" pos="0.4 0 0.4">
+      <geom name="table_top" type="box" size="0.45 0.6 0.02" material="table_mat" class="contact_geom"/>
+      <geom name="leg1" type="cylinder" size="0.025 0.2" pos="0.4 0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+      <geom name="leg2" type="cylinder" size="0.025 0.2" pos="-0.4 0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+      <geom name="leg3" type="cylinder" size="0.025 0.2" pos="0.4 -0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+      <geom name="leg4" type="cylinder" size="0.025 0.2" pos="-0.4 -0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+    </body>
+
+    <!-- Precision Assembly Socket / Hole Fixture mounted on Table -->
+    <!-- Position: [0.46, 0.0, 0.42] on table top -->
+    <body name="assembly_socket" pos="0.46 0.0 0.42">
+      <!-- Fixture Baseplate -->
+      <geom name="socket_base" type="box" size="0.07 0.07 0.008" pos="0 0 0.008" material="table_mat" class="contact_geom"/>
+      <!-- Hole Target Floor -->
+      <geom name="hole_floor" type="box" size="0.017 0.017 0.002" pos="0 0 0.016" material="hole_floor_mat" class="contact_geom"/>
+      
+      <!-- Translucent Cavity Walls (Forming a 34mm inner hole cavity, depth 48mm) -->
+      <!-- Inner hole bounds: X in [-0.017, 0.017], Y in [-0.017, 0.017] -->
+      <geom name="wall_n" type="box" size="0.05 0.016 0.024" pos="0 0.033 0.04" material="fixture_mat" class="contact_geom"/>
+      <geom name="wall_s" type="box" size="0.05 0.016 0.024" pos="0 -0.033 0.04" material="fixture_mat" class="contact_geom"/>
+      <geom name="wall_e" type="box" size="0.016 0.017 0.024" pos="0.033 0 0.04" material="fixture_mat" class="contact_geom"/>
+      <geom name="wall_w" type="box" size="0.016 0.017 0.024" pos="-0.033 0 0.04" material="fixture_mat" class="contact_geom"/>
+
+      <!-- Chamfer / Bevel Funnel Entry Lips on Top of Hole Rim -->
+      <geom name="chamfer_n" type="cylinder" size="0.006 0.023" pos="0 0.023 0.065" euler="0 1.5708 0" material="chamfer_mat" class="contact_geom"/>
+      <geom name="chamfer_s" type="cylinder" size="0.006 0.023" pos="0 -0.023 0.065" euler="0 1.5708 0" material="chamfer_mat" class="contact_geom"/>
+      <geom name="chamfer_e" type="cylinder" size="0.006 0.019" pos="0.023 0 0.065" euler="1.5708 0 0" material="chamfer_mat" class="contact_geom"/>
+      <geom name="chamfer_w" type="cylinder" size="0.006 0.019" pos="-0.023 0 0.065" euler="1.5708 0 0" material="chamfer_mat" class="contact_geom"/>
+
+      <!-- Hole Landmarks -->
+      <site name="hole_entry_site" pos="0 0 0.068" size="0.006" rgba="0.2 1.0 0.3 0.8"/>
+      <site name="hole_bottom_site" pos="0 0 0.0185" size="0.006" rgba="1.0 0.2 0.2 0.8"/>
+    </body>
+
+    <!-- 6-DOF Industrial Robotic Arm Mounted on Table Base -->
+    <body name="robot_base" pos="0.1 0 0.42">
+      <geom name="base_geom" type="cylinder" size="0.08 0.04" pos="0 0 0.02" material="arm_base_mat" class="arm"/>
+
+      <!-- Joint 1: Base rotation (Yaw) -->
+      <body name="link1" pos="0 0 0.04">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="-3.1415 3.1415"/>
+        <geom name="j1_geom" type="cylinder" size="0.06 0.05" pos="0 0 0.05" material="arm_joint_mat" class="arm"/>
+
+        <!-- Joint 2: Shoulder (Pitch) -->
+        <body name="link2" pos="0 0 0.1">
+          <joint name="joint2" type="hinge" axis="0 1 0" range="-2.09 2.09"/>
+          <geom name="j2_hub" type="cylinder" size="0.05 0.04" euler="1.5708 0 0" material="arm_joint_mat" class="arm"/>
+          <geom name="l2_geom" type="capsule" size="0.04" fromto="0 0 0 0 0 0.3" material="arm_link_mat" class="arm"/>
+
+          <!-- Joint 3: Elbow (Pitch) -->
+          <body name="link3" pos="0 0 0.3">
+            <joint name="joint3" type="hinge" axis="0 1 0" range="-2.61 2.61"/>
+            <geom name="j3_hub" type="cylinder" size="0.045 0.035" euler="1.5708 0 0" material="arm_joint_mat" class="arm"/>
+            <geom name="l3_geom" type="capsule" size="0.035" fromto="0 0 0 0 0 0.25" material="arm_link_mat" class="arm"/>
+
+            <!-- Joint 4: Forearm Roll -->
+            <body name="link4" pos="0 0 0.25">
+              <joint name="joint4" type="hinge" axis="0 0 1" range="-3.1415 3.1415"/>
+              <geom name="j4_geom" type="cylinder" size="0.035 0.03" pos="0 0 0.03" material="arm_joint_mat" class="arm"/>
+
+              <!-- Joint 5: Wrist Pitch -->
+              <body name="link5" pos="0 0 0.06">
+                <joint name="joint5" type="hinge" axis="0 1 0" range="-2.09 2.09"/>
+                <geom name="j5_hub" type="cylinder" size="0.03 0.025" euler="1.5708 0 0" material="arm_joint_mat" class="arm"/>
+                <geom name="l5_geom" type="cylinder" size="0.025 0.03" pos="0 0 0.03" material="arm_link_mat" class="arm"/>
+
+                <!-- Joint 6: Wrist Roll (Flange) -->
+                <body name="link6" pos="0 0 0.06">
+                  <joint name="joint6" type="hinge" axis="0 0 1" range="-3.1415 3.1415"/>
+                  <geom name="flange" type="cylinder" size="0.03 0.01" pos="0 0 0.005" material="arm_base_mat" class="arm"/>
+
+                  <!-- Assembly Peg Tool Mount -->
+                  <body name="assembly_tool" pos="0 0 0.01">
+                    <!-- Tool Adaptor Flange -->
+                    <geom name="tool_adapter" type="cylinder" size="0.028 0.012" pos="0 0 0.012" material="arm_base_mat" class="arm"/>
+                    
+                    <!-- Hardened Polished Assembly Peg (Diameter 25mm, length 60mm) -->
+                    <geom name="peg_shaft" type="cylinder" size="0.0125 0.03" pos="0 0 0.054" material="peg_mat" class="contact_geom"/>
+                    
+                    <!-- Rounded Bevel Peg Tip for smooth chamfer entry -->
+                    <geom name="peg_tip_round" type="sphere" size="0.0125" pos="0 0 0.084" material="peg_mat" class="contact_geom"/>
+                    
+                    <!-- Virtual Drag & Tracking Sites -->
+                    <site name="peg_tip" pos="0 0 0.0965" size="0.008" rgba="1 0 0 0.9"/>
+                    <site name="end_effector" pos="0 0 0.0965" size="0.008" rgba="0 1 1 0.8"/>
+                    
+                    <!-- Visual Drag Handle for Mouse Interaction -->
+                    <geom name="drag_handle" type="sphere" size="0.022" pos="0 0 0.04" rgba="0.1 0.85 0.95 0.6" class="arm"/>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Overhead Inspection Camera -->
+    <camera name="overhead_cam" pos="0.46 0.0 1.15" fovy="52"/>
+    <!-- Angled Close-up Assembly Camera -->
+    <camera name="assembly_cam" pos="0.75 -0.32 0.68" xyaxes="0.707 0.707 0 -0.408 0.408 0.816" fovy="42"/>
+  </worldbody>
+
+  <actuator>
+    <!-- Direct Torque Motors for Full-Dof Operational Space Impedance Control -->
+    <motor name="act_j1" joint="joint1" ctrlrange="-150 150"/>
+    <motor name="act_j2" joint="joint2" ctrlrange="-200 200"/>
+    <motor name="act_j3" joint="joint3" ctrlrange="-150 150"/>
+    <motor name="act_j4" joint="joint4" ctrlrange="-80 80"/>
+    <motor name="act_j5" joint="joint5" ctrlrange="-60 60"/>
+    <motor name="act_j6" joint="joint6" ctrlrange="-40 40"/>
+  </actuator>
+</mujoco>

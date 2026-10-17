@@ -1,0 +1,160 @@
+<mujoco model="industrial_6dof_manipulator_torque">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast">
+    <flag contact="enable"/>
+  </option>
+
+  <default>
+    <joint damping="0.05" armature="0.01"/>
+    <geom friction="1.5 0.05 0.001" solref="0.01 1" solimp="0.95 0.99 0.001"/>
+    
+    <!-- Arm links: visual only, no internal self-lock collisions -->
+    <default class="arm">
+      <geom contype="0" conaffinity="0"/>
+    </default>
+    
+    <!-- Contact geoms: fingers, table, cube, basket -->
+    <default class="contact_geom">
+      <geom contype="1" conaffinity="1"/>
+    </default>
+  </default>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.85 0.9 1.0" rgb2="0.6 0.7 0.85" width="512" height="512"/>
+    <texture name="plane_tex" type="2d" builtin="checker" rgb1="0.9 0.9 0.9" rgb2="0.8 0.8 0.8" width="512" height="512"/>
+    <material name="plane_mat" texture="plane_tex" texrepeat="5 5" reflectance="0.1"/>
+    <material name="arm_base_mat" rgba="0.2 0.25 0.3 1"/>
+    <material name="arm_joint_mat" rgba="0.9 0.45 0.1 1"/>
+    <material name="arm_link_mat" rgba="0.85 0.88 0.92 1"/>
+    <material name="gripper_mat" rgba="0.15 0.15 0.18 1"/>
+    <material name="finger_mat" rgba="0.25 0.7 0.9 1"/>
+    <material name="table_mat" rgba="0.45 0.35 0.25 1"/>
+    <material name="target_mat" rgba="0.95 0.2 0.2 1"/>
+    <material name="basket_mat" rgba="0.2 0.8 0.3 0.6"/>
+    <material name="handle_mat" rgba="0.1 0.85 0.95 0.7"/>
+  </asset>
+
+  <worldbody>
+    <!-- Lighting -->
+    <light directional="true" pos="0 1 3" dir="0 -0.3 -1" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3"/>
+    <light directional="true" pos="-1 -1 2" dir="0.5 0.5 -1" diffuse="0.5 0.5 0.5"/>
+
+    <!-- Floor -->
+    <geom name="floor" type="plane" size="3 3 0.1" material="plane_mat" class="contact_geom"/>
+
+    <!-- Workbench Table -->
+    <body name="table" pos="0.4 0 0.4">
+      <geom name="table_top" type="box" size="0.45 0.6 0.02" material="table_mat" class="contact_geom"/>
+      <geom name="leg1" type="cylinder" size="0.025 0.2" pos="0.4 0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+      <geom name="leg2" type="cylinder" size="0.025 0.2" pos="-0.4 0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+      <geom name="leg3" type="cylinder" size="0.025 0.2" pos="0.4 -0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+      <geom name="leg4" type="cylinder" size="0.025 0.2" pos="-0.4 -0.55 -0.2" rgba="0.15 0.15 0.15 1" class="contact_geom"/>
+    </body>
+
+    <!-- Obstacle Wall (Physical barrier between Pick area and Basket area) -->
+    <body name="obstacle_barrier" pos="0.45 0.035 0.53">
+      <geom name="barrier_geom" type="box" size="0.08 0.015 0.11" rgba="0.95 0.45 0.1 0.85" class="contact_geom"/>
+      <geom name="hazard_stripe" type="box" size="0.082 0.016 0.015" pos="0 0 0.09" rgba="0.1 0.1 0.1 1" class="contact_geom"/>
+    </body>
+
+    <!-- 6-DOF Industrial Robotic Arm Mounted on Table Base -->
+    <body name="robot_base" pos="0.1 0 0.42">
+      <geom name="base_geom" type="cylinder" size="0.08 0.04" pos="0 0 0.02" material="arm_base_mat" class="arm"/>
+
+      <!-- Joint 1: Base rotation (Yaw) -->
+      <body name="link1" pos="0 0 0.04">
+        <joint name="joint1" type="hinge" axis="0 0 1" range="-3.1415 3.1415"/>
+        <geom name="j1_geom" type="cylinder" size="0.06 0.05" pos="0 0 0.05" material="arm_joint_mat" class="arm"/>
+
+        <!-- Joint 2: Shoulder (Pitch) -->
+        <body name="link2" pos="0 0 0.1">
+          <joint name="joint2" type="hinge" axis="0 1 0" range="-2.09 2.09"/>
+          <geom name="j2_hub" type="cylinder" size="0.05 0.04" euler="1.5708 0 0" material="arm_joint_mat" class="arm"/>
+          <geom name="l2_geom" type="capsule" size="0.04" fromto="0 0 0 0 0 0.3" material="arm_link_mat" class="arm"/>
+
+          <!-- Joint 3: Elbow (Pitch) -->
+          <body name="link3" pos="0 0 0.3">
+            <joint name="joint3" type="hinge" axis="0 1 0" range="-2.61 2.61"/>
+            <geom name="j3_hub" type="cylinder" size="0.045 0.035" euler="1.5708 0 0" material="arm_joint_mat" class="arm"/>
+            <geom name="l3_geom" type="capsule" size="0.035" fromto="0 0 0 0 0 0.25" material="arm_link_mat" class="arm"/>
+
+            <!-- Joint 4: Forearm Roll -->
+            <body name="link4" pos="0 0 0.25">
+              <joint name="joint4" type="hinge" axis="0 0 1" range="-3.1415 3.1415"/>
+              <geom name="j4_geom" type="cylinder" size="0.035 0.03" pos="0 0 0.03" material="arm_joint_mat" class="arm"/>
+
+              <!-- Joint 5: Wrist Pitch -->
+              <body name="link5" pos="0 0 0.06">
+                <joint name="joint5" type="hinge" axis="0 1 0" range="-2.09 2.09"/>
+                <geom name="j5_hub" type="cylinder" size="0.03 0.025" euler="1.5708 0 0" material="arm_joint_mat" class="arm"/>
+                <geom name="l5_geom" type="cylinder" size="0.025 0.03" pos="0 0 0.03" material="arm_link_mat" class="arm"/>
+
+                <!-- Joint 6: Wrist Roll (Flange) -->
+                <body name="link6" pos="0 0 0.06">
+                  <joint name="joint6" type="hinge" axis="0 0 1" range="-3.1415 3.1415"/>
+                  <geom name="flange" type="cylinder" size="0.03 0.01" pos="0 0 0.005" material="arm_base_mat" class="arm"/>
+
+                  <!-- Gripper Body -->
+                  <body name="gripper_base" pos="0 0 0.01">
+                    <geom name="gripper_palm" type="box" size="0.04 0.02 0.015" pos="0 0 0.015" material="gripper_mat" class="contact_geom"/>
+
+                    <!-- Visual Drag Handle for Interactive Teaching -->
+                    <geom name="drag_handle" type="sphere" size="0.025" pos="0 0 0.04" material="handle_mat" class="arm"/>
+                    <site name="end_effector" pos="0 0 0.045" size="0.008" rgba="1 0 0 0.8"/>
+
+                    <!-- Left Finger (Prismatic slide) -->
+                    <body name="left_finger" pos="0 0.03 0.02">
+                      <joint name="joint_left_finger" type="slide" axis="0 1 0" range="-0.022 0" damping="5"/>
+                      <geom name="lf_geom" type="box" size="0.012 0.005 0.025" pos="0 -0.005 0.025" material="finger_mat" class="contact_geom"/>
+                    </body>
+
+                    <!-- Right Finger (Prismatic slide) -->
+                    <body name="right_finger" pos="0 -0.03 0.02">
+                      <joint name="joint_right_finger" type="slide" axis="0 1 0" range="0 0.022" damping="5"/>
+                      <geom name="rf_geom" type="box" size="0.012 0.005 0.025" pos="0 0.005 0.025" material="finger_mat" class="contact_geom"/>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- Target Cube (To be picked) -->
+    <body name="target_cube" pos="0.45 -0.15 0.442">
+      <freejoint name="target_joint"/>
+      <geom name="cube_geom" type="box" size="0.018 0.018 0.018" mass="0.03" material="target_mat" class="contact_geom"/>
+    </body>
+
+    <!-- Placement Basket / Goal Zone -->
+    <body name="goal_basket" pos="0.45 0.22 0.43">
+      <!-- Floor of basket -->
+      <geom name="basket_bottom" type="box" size="0.065 0.065 0.005" material="basket_mat" class="contact_geom"/>
+      <!-- Borders -->
+      <geom name="wall1" type="box" size="0.067 0.004 0.015" pos="0 0.065 0.01" rgba="0.2 0.8 0.3 0.8" class="contact_geom"/>
+      <geom name="wall2" type="box" size="0.067 0.004 0.015" pos="0 -0.065 0.01" rgba="0.2 0.8 0.3 0.8" class="contact_geom"/>
+      <geom name="wall3" type="box" size="0.004 0.065 0.015" pos="0.065 0 0.01" rgba="0.2 0.8 0.3 0.8" class="contact_geom"/>
+      <geom name="wall4" type="box" size="0.004 0.065 0.015" pos="-0.065 0 0.01" rgba="0.2 0.8 0.3 0.8" class="contact_geom"/>
+    </body>
+
+    <!-- Cameras -->
+    <camera name="overhead_cam" pos="0.45 0.05 1.15" fovy="55"/>
+    <camera name="cinematic_cam" pos="1.1 -0.5 0.95" xyaxes="0.707 0.707 0 -0.408 0.408 0.816" fovy="48"/>
+  </worldbody>
+
+  <actuator>
+    <!-- Direct Torque Motors for Dynamics, Zero-G Hovering & Lead-Through Teaching -->
+    <motor name="act_j1" joint="joint1" ctrlrange="-150 150"/>
+    <motor name="act_j2" joint="joint2" ctrlrange="-200 200"/>
+    <motor name="act_j3" joint="joint3" ctrlrange="-150 150"/>
+    <motor name="act_j4" joint="joint4" ctrlrange="-80 80"/>
+    <motor name="act_j5" joint="joint5" ctrlrange="-60 60"/>
+    <motor name="act_j6" joint="joint6" ctrlrange="-40 40"/>
+
+    <!-- Gripper Position Actuators -->
+    <position name="act_left_finger" joint="joint_left_finger" kp="600" kv="50" ctrlrange="-0.022 0"/>
+    <position name="act_right_finger" joint="joint_right_finger" kp="600" kv="50" ctrlrange="0 0.022"/>
+  </actuator>
+</mujoco>
